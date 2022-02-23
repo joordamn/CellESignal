@@ -2,3 +2,4 @@
 data
 self_train
 exp
+__pycache__
