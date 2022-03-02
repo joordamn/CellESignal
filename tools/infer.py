@@ -9,7 +9,7 @@
 -------------------------
 """
 
-import json, os
+import json, os, sys
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,8 +17,12 @@ from tqdm import tqdm
 import torch
 from scipy.interpolate import interp1d
 
+parent_path = os.path.abspath(os.path.join(__file__, *(['..'] * 2)))
+sys.path.insert(0, parent_path)
+
 from models.cnn_classifier import Classifier
 from models.cnn_segmentator import Segmentator
+from utils.utils import read_from_txt
 
 
 class PeakDetector:
@@ -38,13 +42,13 @@ class PeakDetector:
     def __call__(self, raw_data: np.ndarray):
         signal = self._preprocess(raw_data, interpolate=True, length=self.interpolate_length)
         # model inference
-        class_output, _ = self.classifier(signal)
+        class_output= self.classifier(signal)
         class_output = class_output.data.cpu().numpy()
         # get label
         label = np.argmax(class_output)
         # peak detected
         if label == 1:
-            _, seg_output = self.segmentator(signal)
+            seg_output = self.segmentator(signal)
             seg_output = seg_output.data.sigmoid().cpu().numpy()
             borders = self._get_borders(seg_output[0, 0], interpolation_factor=len(signal[0, 0]) / len(raw_data))
             return 1, borders, seg_output[0, 0].tolist()
@@ -99,7 +103,7 @@ class PeakDetector:
         return borders_roi
 
 
-def infer_from_file(model: PeakDetector, file_path, save_path):
+def infer_from_json_file(model: PeakDetector, file_path, save_path):
     # parse the json file
     raw_signals = []
     for file in os.listdir(file_path):
@@ -131,16 +135,49 @@ def infer_from_file(model: PeakDetector, file_path, save_path):
         plt.savefig(save_path + '/{}.jpg'.format(signal_code))
 
 
+def infer_from_txt_file(model: PeakDetector, file_path, save_path):
+
+    full_signal, _ = read_from_txt(file_path)
+    signalLen = len(full_signal)
+    startPos = 0
+    sliceLen = 200
+    figure = plt.figure()
+    pbar = tqdm(total=signalLen)
+    while startPos <= signalLen - sliceLen:
+        signalSlice = np.array(full_signal[startPos: startPos + sliceLen], dtype=np.float32)
+        label, borders, _ = model(signalSlice)
+        if label == 1:
+            # plot
+            figure.clear()
+            signal_code = str(startPos)
+            ax = figure.add_subplot(111)
+            ax.plot(signalSlice, label=signal_code)
+            title = "predicted border for {}".format(signal_code)
+            if borders:
+                for border in borders:
+                    begin, end = border
+                    ax.fill_between(range(begin, end + 1), y1=signalSlice[begin:end + 1], y2=min(signalSlice),
+                                    alpha=0.5)
+            ax.set_title(title)
+            ax.legend(loc='best')
+            plt.savefig(save_path + '/{}.jpg'.format(signal_code))
+        startPos += sliceLen
+        pbar.update(sliceLen)
+    pbar.close()
+
 if __name__ == "__main__":
 
     # parameters
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    classifierModelPath = "./data/weights/best/2021_1230/Classifier_100_9524"
-    segmentatorModelPath = "./data/weights/best/2021_1230/Segmentator_"
-    # filePath = "./data/json/"
-    # savePath = "./data/result/"
-    filePath = "../peakonly/data/train/"
-    savePath = "./data/train_result1/"
+    classifierModelPath = "../data/weights/2022_0302/Classifier"
+    segmentatorModelPath = "../data/weights/2022_0302/Segmentator"
+
+    dataRoot = "../data/raw_txt_data/MutiChannel_MDA_ANTIBODY_COATING_2022_02_27/"
+    # 文件名
+    fileName = "1_05psi_noGravity_meas_plotter_20220227_185626.txt"
+    filePath = os.path.join(dataRoot, fileName)
+    savePath = os.path.join(dataRoot, os.path.splitext(fileName)[0])
+    
     if not os.path.exists(savePath):
         os.makedirs(savePath)
 
@@ -148,4 +185,5 @@ if __name__ == "__main__":
     peakDetector = PeakDetector(classifierModelPath, segmentatorModelPath, DEVICE)
 
     # infer from file
-    infer_from_file(peakDetector, filePath, savePath)
+    # infer_from_json_file(peakDetector, filePath, savePath)
+    infer_from_txt_file(peakDetector, filePath, savePath)
