@@ -57,4 +57,5 @@ class Classifier(nn.Module):
         x = preprocessing(x)
         x = self.convBlock(x)
         x, _ = torch.max(x, dim=2)
-        return self.classification(x), None
+        return self.classification(x)
+        # return self.classification(x), None

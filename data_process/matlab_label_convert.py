@@ -10,9 +10,9 @@
 '''
 
 import os, sys, shutil
-sys.path.append("..")
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-os.chdir(sys.path[-1])
+# sys.path.append("..")
+# sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+# os.chdir(sys.path[-1])
 
 from tqdm import tqdm
 import json
@@ -23,7 +23,16 @@ import numpy as np
 from utils.utils import read_from_txt
 
 
-def parse(root_folder, signal_save_path, noise_save_path, noise_num_ratio=2, split_len=200, plot=True):
+def parse(
+    root_folder, 
+    signal_save_path, 
+    noise_save_path, 
+    noise_num_ratio=2, 
+    split_len=200, 
+    plot=True, 
+    gen_signal=True, 
+    gen_noise=True,
+    ):
     """在txt文件的根目录下读取txt文件，并生成对应的json文件和图
     """
 
@@ -61,7 +70,7 @@ def parse(root_folder, signal_save_path, noise_save_path, noise_num_ratio=2, spl
         begin, end = border
         border_len = end - begin
 
-        if border_len >= int(split_len * 0.9):
+        if border_len >= int(split_len * 0.9) or border_len == 0:
             continue
         
         # 截取数据
@@ -119,65 +128,66 @@ def parse(root_folder, signal_save_path, noise_save_path, noise_num_ratio=2, spl
     print("信号生成完成")
 
     # ---------生成噪声----------- #
+    if gen_noise:
 
-    # 随机生成10000个噪声起点
-    noise_locs = np.random.randint(100, len(signal_data)*0.5, (10000,)).tolist()
-    num_of_noise = noise_num_ratio * len(border_data) # 噪声数量
-    # 根据噪声位置和border位置，筛选合适的噪声起点
-    filtered_noise_locs = []
-    for i, noise_loc in enumerate(noise_locs):
-        count = 0
-        for border in border_data:
-            begin, end = border[0], border[1]
-            if noise_loc <= begin - 2 * split_len or noise_loc >= end + 2 * split_len:
-                count += 1
-        if count >= len(border_data):
-            filtered_noise_locs.append(noise_loc)
-    print("filtered noise has {}".format(len(filtered_noise_locs)))
-    assert len(filtered_noise_locs) >= num_of_noise, "filtered noise num less than {0}".format(num_of_noise)
-    final_noise_locs = filtered_noise_locs[:num_of_noise]
-    # 截取噪声数据
-    for i, loc in tqdm(enumerate(final_noise_locs)):
-        noise_slice = signal_data[loc:loc + split_len]
+        # 随机生成10000个噪声起点
+        # noise_locs = np.random.randint(100, len(signal_data)*0.5, (10000,)).tolist()
+        noise_locs = np.random.randint(100, border_data[-1][-1], (10000,)).tolist()  # 噪声初始位置范围改为标注过的范围之内
+        num_of_noise = noise_num_ratio * len(border_data) # 噪声数量
+        # 根据噪声位置和border位置，筛选合适的噪声起点
+        filtered_noise_locs = []
+        for i, noise_loc in enumerate(noise_locs):
+            count = 0
+            for border in border_data:
+                begin, end = border[0], border[1]
+                if noise_loc <= begin - 2 * split_len or noise_loc >= end + 2 * split_len:
+                    count += 1
+            if count >= len(border_data):
+                filtered_noise_locs.append(noise_loc)
+        print("filtered noise has {}".format(len(filtered_noise_locs)))
+        assert len(filtered_noise_locs) >= num_of_noise, "filtered noise num less than {0}".format(num_of_noise)
+        final_noise_locs = filtered_noise_locs[:num_of_noise]
+        # 截取噪声数据
+        for i, loc in tqdm(enumerate(final_noise_locs)):
+            noise_slice = signal_data[loc:loc + split_len]
 
-        # 改写json内容
-        json_file_name = "nois_sample_" + str(i).zfill(4)
-        json_file = os.path.join(noise_save_path, json_file_name) + '.json'
-        
-        label["borders"] = []
-        label["label"] = 0
-        label["number of peaks"] = 0
-        label["peaks' labels"] = []
-        label["code"] = json_file_name
-        label["intensity"] = noise_slice
-        label["rt"] = [loc, loc + split_len]
-        label["mz"] = noise_slice
-        with open(json_file, mode="w", encoding="utf-8") as jf:
-            json.dump(label, jf)
-        
-        # plot
-        if plot:
-            figure.clear()
-            ax = figure.add_subplot(111)
-            random_signal = rt_total[random.randint(0, len(rt_total)-1)][0]
-            ax.plot(signal_data[random_signal:random_signal+split_len])
-            ax.plot(noise_slice)
-            ax.set_title(label["code"])
-            fig_save_path = noise_save_path + "/fig/"
-            if not os.path.exists(fig_save_path):
-                os.makedirs(fig_save_path)
-            figure.savefig(fig_save_path + "nois_sample_" + str(i).zfill(4) + ".jpg")
-            plt.clf()
-
-    print("噪声生成完成")
+            # 改写json内容
+            json_file_name = "nois_sample_" + str(i).zfill(4)
+            json_file = os.path.join(noise_save_path, json_file_name) + '.json'
             
+            label["borders"] = []
+            label["label"] = 0
+            label["number of peaks"] = 0
+            label["peaks' labels"] = []
+            label["code"] = json_file_name
+            label["intensity"] = noise_slice
+            label["rt"] = [loc, loc + split_len]
+            label["mz"] = noise_slice
+            with open(json_file, mode="w", encoding="utf-8") as jf:
+                json.dump(label, jf)
+            
+            # plot
+            if plot:
+                figure.clear()
+                ax = figure.add_subplot(111)
+                random_signal = rt_total[random.randint(0, len(rt_total)-1)][0]
+                ax.plot(signal_data[random_signal:random_signal+split_len])
+                ax.plot(noise_slice)
+                ax.set_title(label["code"])
+                fig_save_path = noise_save_path + "/fig/"
+                if not os.path.exists(fig_save_path):
+                    os.makedirs(fig_save_path)
+                figure.savefig(fig_save_path + "nois_sample_" + str(i).zfill(4) + ".jpg")
+                plt.clf()
 
+        print("噪声生成完成")
+            
 
 if __name__ == "__main__":
     root_folders = [
-        "../data/data_collection_20220115/txt_data/01",
-        "../data/data_collection_20220115/txt_data/02",
-        "../data/data_collection_20220115/txt_data/03",
+        "../data/data_collection_20220301/txt_data/01",
+        "../data/data_collection_20220301/txt_data/02",
+        # "../data/data_collection_20220115/txt_data/03",
     ]
 
     for root_folder in root_folders:
@@ -195,4 +205,11 @@ if __name__ == "__main__":
             os.makedirs(peak_save_path)
             os.makedirs(noise_save_path)
         
-        parse(root_folder, peak_save_path, noise_save_path,plot=True)
+        parse(
+            root_folder, 
+            peak_save_path, 
+            noise_save_path,
+            plot=True,
+            gen_signal=True,
+            gen_noise=True,
+            )

@@ -37,7 +37,8 @@ class ROIDataset(Dataset):
     A dataset for a training
     """
     def __init__(self, path, device, interpolate=False, adaptive_interpolate=False,
-                 length=None, augmentations=None, balanced=False, return_roi_code=False):
+                 length=None, augmentations=None, balanced=False, return_roi_code=False,
+                 model_type="classification"):
         """
         :param path: a path to annotated ROIs
         :param device: a device where training will occur (GPU / CPU)
@@ -56,6 +57,7 @@ class ROIDataset(Dataset):
         self.adaptive_interpolate = interpolate
         self.length = length
         self.return_roi_code = return_roi_code
+        self.model_type = model_type
         for file in os.listdir(path):
             if file[0] != '.':
                 with open(os.path.join(path, file)) as json_file:
@@ -121,5 +123,10 @@ class ROIDataset(Dataset):
         if self.return_roi_code:
             original_length = len(roi['mz'])
             return x, y, integration_mask, intersection_mask, roi['code'], original_length
-
-        return x, y, integration_mask, intersection_mask
+        
+        if self.model_type == "classification":
+            return x, y
+        elif self.model_type == "segment":
+            return x, integration_mask
+        else:
+            raise TypeError("incorrect model type: classification or segment")

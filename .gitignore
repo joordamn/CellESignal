@@ -1,5 +1,7 @@
 .idea
+.vscode
 data
 self_train
 exp
+log
 __pycache__

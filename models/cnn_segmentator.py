@@ -95,4 +95,5 @@ class Segmentator(nn.Module):
         x = self.pass_up1(x)
         x = torch.cat((x, starter), dim=1)
         x = self.finisher(x)
-        return None, x
+        return x
+        # return None, x

@@ -10,6 +10,7 @@
 '''
 
 import time, os, json
+import logging
 from datetime import datetime
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -121,6 +122,31 @@ def post_plot(json_folder):
                 plt.savefig(json_folder + '/{}.jpg'.format(signal_code))
 
 
+def plot_line(train_x, train_y, valid_x, valid_y, mode, out_dir):
+    """绘制训练和验证集的loss曲线/acc曲线
+
+    Args:
+        train_x : epoch num range -> x axis of trian figure
+        train_y : y axis of train figure
+        valid_x : epoch num range -> x axis of valid figure
+        valid_y : y axis of valid figure
+        mode(str) : 'loss' or 'acc'
+        out_dir : save path of the figure
+    """
+    plt.plot(train_x, train_y, label='Train')
+    plt.plot(valid_x, valid_y, label='Valid')
+
+    plt.ylabel(str(mode))
+    plt.xlabel('Epoch')
+
+    location = 'upper right' if mode == 'loss' else 'upper left'
+    plt.legend(loc=location)
+
+    plt.title('_'.join([mode]))
+    plt.savefig(os.path.join(out_dir, mode + '.png'))
+    plt.close()
+
+
 def create_folder(exp_path):
     now = datetime.now()
     folder_name = now.strftime("%H_%M_%S")
@@ -130,6 +156,53 @@ def create_folder(exp_path):
         os.makedirs(result_save_folder)
     return result_save_folder
 
+
+class Logger(object):
+    def __init__(self, path_log):
+        log_name = os.path.basename(path_log)
+        self.log_name = log_name if log_name else "root"
+        self.out_path = path_log
+
+        log_dir = os.path.dirname(self.out_path)
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+
+    def init_logger(self):
+        logger = logging.getLogger(self.log_name)
+        logger.setLevel(level=logging.INFO)
+
+        # 配置文件Handler
+        file_handler = logging.FileHandler(self.out_path, 'w')
+        file_handler.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+
+        # 配置屏幕Handler
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+
+        # 添加handler
+        logger.addHandler(file_handler)
+        logger.addHandler(console_handler)
+
+        return logger
+
+
+def create_logger(log_root="./log"):
+    log_dir = create_folder(log_root)
+    path_log = os.path.join(log_dir, "log.log")
+    logger = Logger(path_log)
+    logger = logger.init_logger()
+    return logger, log_dir
+
+
+def check_data_dir(path_tmp):
+    assert os.path.exists(path_tmp), \
+        "\n\n路径不存在，当前变量中指定的路径是：\n{}\n请检查相对路径的设置，或者文件是否存在".format(os.path.abspath(path_tmp))
+
+
 if __name__ == "__main__":
     exp_path = "./exp"
     create_folder(exp_path)
+    create_logger()

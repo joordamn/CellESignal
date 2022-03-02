@@ -14,9 +14,9 @@ import os, sys, shutil
 import random
 
 from tqdm import tqdm
-sys.path.append("..")
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-os.chdir(sys.path[-1])
+# sys.path.append("..")
+# sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+# os.chdir(sys.path[-1])
 
 
 def get_json_path(root_folder):
@@ -50,6 +50,8 @@ if __name__ == "__main__":
         "../data/data_collection_20220115/txt_data/01",
         "../data/data_collection_20220115/txt_data/02",
         "../data/data_collection_20220115/txt_data/03",
+        "../data/data_collection_20220301/txt_data/01",
+        "../data/data_collection_20220301/txt_data/02",
     ]
     train_root = "../data/train_data/"
     date = datetime.now().strftime("%Y_%m_%d")
