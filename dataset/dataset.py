@@ -113,7 +113,7 @@ class ROIDataset(Dataset):
 
         x = roi['intensity']
         x = torch.tensor(x, dtype=torch.float32, device=self.device).view(1, -1)
-        x = x / torch.max(x)
+        # x = x / torch.max(x)
         y = torch.tensor(roi['label'], dtype=torch.long, device=self.device)
 
         integration_mask, intersection_mask = self._get_mask(roi)

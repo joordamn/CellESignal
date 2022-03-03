@@ -122,6 +122,20 @@ def post_plot(json_folder):
                 plt.savefig(json_folder + '/{}.jpg'.format(signal_code))
 
 
+def plot_signal_borders(signal: list, borders: list, save_path, figure, title, label):
+    figure.clear()
+    ax = figure.add_subplot(111)
+    ax.plot(signal, label=label)
+    title = title
+    if borders:
+        for border in borders:
+            begin, end = border
+            ax.fill_between(range(begin, end + 1), y1=signal[begin:end + 1], y2=min(signal), alpha=0.5)
+    ax.set_title(title)
+    ax.legend(loc='best')
+    plt.savefig(save_path)
+
+
 def plot_line(train_x, train_y, valid_x, valid_y, mode, out_dir):
     """绘制训练和验证集的loss曲线/acc曲线
 
