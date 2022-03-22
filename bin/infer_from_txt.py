@@ -14,6 +14,7 @@ from random import random
 import torch
 import numpy as np
 from tqdm import tqdm
+import seaborn as sns
 import json
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
@@ -99,10 +100,12 @@ def parsePeaks(peak: list, borders: list):
         travelPoints = abs(begin - end)
         travelTime = travelPoints * (1 / 1674) * 1000
         ppVal = abs(maxVal - minVal)
-        if ppVal > 0.0012:
+        # return (travelTime, ppVal)
+        # if ppVal > 0.0012:
+        if ppVal > 0.0003 or travelTime > 60:
             return None
-        else:
-            return (travelTime, ppVal)
+        # else:
+        #     return (travelTime, ppVal)
     elif not borders:
         return None
 
@@ -134,12 +137,19 @@ def plotTimePP(txt_dict):
         print("{} has {} peaks".format(label, len(ppVals)))
         # color = (random(), random(), random())
         color = colors[i]
-        ax_scatter.scatter(travelsTimes, ppVals, label=label, color=color, s=2, )  # scatter
-        _, xhist_bins, _ = ax_xhist.hist(travelsTimes, bins=200, color=color, alpha=0.5)  # hist travel time
+        # scatter
+        ax_scatter.scatter(travelsTimes, ppVals, label=label, color=color, s=2, )  
+        # hist travel time
+        # ax_xhist.hist(travelsTimes, bins=200, color=color, alpha=0.5)
+        sns.histplot(x=travelsTimes, ax=ax_xhist, color=color, kde=True)
+        # hist ppvals
+        # ax_yhist.hist(ppVals, bins=200, orientation='horizontal', color=color, alpha=0.5)
+        sns.histplot(y=ppVals, ax=ax_yhist, color=color, kde=True)
+
+
         ax_xhist.set_xticks([])
-        _, yhist_bins, _ = ax_yhist.hist(ppVals, bins=200, orientation='horizontal', color=color, alpha=0.5)  # hist ppvals
         ax_yhist.set_yticks([])
-        # ax_xhist.plot(xhist_bins, )
+
         i += 1
     
     ax_scatter.set_xlabel("travel time (ms)")
@@ -168,15 +178,24 @@ if __name__ == "__main__":
     label2 = cell_type + "_LPA"
     label3 = cell_type + "_Unprocessed"
 
+    # label1 = "MDA_UNPROCESSED"
+    # label2 = "MCF7_UNPROCESSED"
+
+    # label1 = "MCF7_mix_MDA @1psi"
+    # label2 = "MDA_DEAD @2psi"
+
     # txt 路径列表
     txt_path_list = {
-        # label1: r"../data/raw_txt_data/MutiChannel_MDA_ANTIBODY_COATING_2022_02_27/1_05psi_noGravity_meas_plotter_20220227_185626.txt",
+        # label1: r"../data/raw_txt_data/MutiChannel_MDA_ANTIBODY_COATING_2022_02_27/all_05psi.txt",
         # label2: r"../data\raw_txt_data\MultiChannel_MDA_LPA_2022_02_16\4B_Middle_05psi_meas_plotter_20220216_173345.txt",
-        # label3: r"../data\raw_txt_data\MultiChannel_MDA_BASE_2022_03_02/3_sparse_good_05psi_meas_plotter_20220302_165416.txt",
+        # label3: r"../data\raw_txt_data\MultiChannel_MDA_BASE_2022_03_02/all_05psi.txt",
 
-        label1: r"../data/raw_txt_data/MultiChannel_MCF7_ANTIBODY_COATING_20220227/6_withGravity_02psi_meas_plotter_20220227_181401.txt",
+        label1: r"../data/raw_txt_data/MultiChannel_MCF7_ANTIBODY_COATING_20220227/all_0203psi_.txt",
         label2: r"../data\raw_txt_data\MultiChannel_MCF7_LPA_20220215\4B_Middle_02psi_meas_plotter_20220215_162237.txt",
-        label3: r"../data\raw_txt_data\MultiChannel_MCF7_BASE_20220302/5_dense_good_05psi_meas_plotter_20220302_152537.txt",
+        label3: r"../data\raw_txt_data\MultiChannel_MCF7_BASE_20220302/all_05psi.txt",
+
+        # label1: r"../data\raw_txt_data\MultiChannel_MCF7_MIX_MDA_20220305/all_1psi.txt",
+        # label2: r"../data\raw_txt_data\MultiChannel_MDA_DEAD_20220305/1_1psi_meas_plotter_20220305_175826.txt"
     }
 
     peakDetector = PeakDetector(

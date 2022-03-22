@@ -173,9 +173,9 @@ if __name__ == "__main__":
     classifierModelPath = "../data/weights/2022_0303/Classifier"
     segmentatorModelPath = "../data/weights/2022_0303/Segmentator"
 
-    dataRoot = "../data/raw_txt_data/MultiChannel_MCF7_LPA_20220215/"
+    dataRoot = r"../data\raw_txt_data\MultiChannel_MDA_DEAD_20220305"
     # 文件名
-    fileName = "4B_Middle_02psi_meas_plotter_20220215_162237.txt"
+    fileName = "ALL_2psi.txt"
     filePath = os.path.join(dataRoot, fileName)
     savePath = os.path.join(dataRoot, os.path.splitext(fileName)[0])
     
