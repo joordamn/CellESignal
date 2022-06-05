@@ -152,14 +152,14 @@ def plotTimePP(txt_dict):
 
         i += 1
     
-    ax_scatter.set_xlabel("travel time (ms)")
-    ax_scatter.set_ylabel("peak2peak value (V)")
+    ax_scatter.set_xlabel("Traveling Time (ms)")
+    ax_scatter.set_ylabel("Measured Voltage (V)")
     ax_scatter.legend()
 
-    ax_xhist.set_ylabel("count")
-    ax_yhist.set_xlabel("count")
+    ax_xhist.set_ylabel("Count")
+    ax_yhist.set_xlabel("Count")
 
-    fig.suptitle("travel time and peak2peak value")
+    fig.suptitle("Traveling Time and Measured Voltage")
     fig_name = label[:3] + "_" + datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".png"
     fig.savefig(os.path.join("../data/", fig_name))
         
@@ -174,9 +174,9 @@ if __name__ == "__main__":
 
     # 绘图标签
     cell_type = "MCF7"
-    label1 = cell_type + "_Antibody_Coated"
-    label2 = cell_type + "_LPA"
-    label3 = cell_type + "_Unprocessed"
+    # label1 = cell_type + "_Antibody_Coated"
+    # label2 = cell_type + "_LPA"
+    # label3 = cell_type + "_Unprocessed"
 
     # label1 = "MDA_UNPROCESSED"
     # label2 = "MCF7_UNPROCESSED"
@@ -184,18 +184,21 @@ if __name__ == "__main__":
     # label1 = "MCF7_mix_MDA @1psi"
     # label2 = "MDA_DEAD @2psi"
 
+    label1 = "Live Cells"
+    label2 = "Fixed Cells"
+
     # txt 路径列表
     txt_path_list = {
         # label1: r"../data/raw_txt_data/MutiChannel_MDA_ANTIBODY_COATING_2022_02_27/all_05psi.txt",
         # label2: r"../data\raw_txt_data\MultiChannel_MDA_LPA_2022_02_16\4B_Middle_05psi_meas_plotter_20220216_173345.txt",
         # label3: r"../data\raw_txt_data\MultiChannel_MDA_BASE_2022_03_02/all_05psi.txt",
 
-        label1: r"../data/raw_txt_data/MultiChannel_MCF7_ANTIBODY_COATING_20220227/all_0203psi_.txt",
-        label2: r"../data\raw_txt_data\MultiChannel_MCF7_LPA_20220215\4B_Middle_02psi_meas_plotter_20220215_162237.txt",
-        label3: r"../data\raw_txt_data\MultiChannel_MCF7_BASE_20220302/all_05psi.txt",
+        # label1: r"../data/raw_txt_data/MultiChannel_MCF7_ANTIBODY_COATING_20220227/all_0203psi_.txt",
+        # label2: r"../data\raw_txt_data\MultiChannel_MCF7_LPA_20220215\4B_Middle_02psi_meas_plotter_20220215_162237.txt",
+        # label3: r"../data\raw_txt_data\MultiChannel_MCF7_BASE_20220302/all_05psi.txt",
 
-        # label1: r"../data\raw_txt_data\MultiChannel_MCF7_MIX_MDA_20220305/all_1psi.txt",
-        # label2: r"../data\raw_txt_data\MultiChannel_MDA_DEAD_20220305/1_1psi_meas_plotter_20220305_175826.txt"
+        label1: r"../data\raw_txt_data\MultiChannel_MCF7_MIX_MDA_20220305/all_1psi.txt",
+        label2: r"../data\raw_txt_data\MultiChannel_MDA_DEAD_20220305/ALL_2psi.txt"
     }
 
     peakDetector = PeakDetector(
