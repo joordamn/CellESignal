@@ -18,16 +18,17 @@ from serial import Serial
 from src.processer import Processer
 from src.production import dataProduction, dataProcess
 from src.recorder import Recorder
-from utils.daqSessionCreator import createSession
+from utils.daqSessionCreator import DaqSession
 from utils.utils import create_folder, post_plot
+from config import cfg
 
 
 if __name__ == "__main__":
     #-------------------参数设置----------------#
 
     DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    classifierModelPath = r"./data\weights\best\2021_0125\Classifier"
-    segmentatorModelPath = r"./data\weights\best\2021_0125\Segmentator"
+    classifierModelPath = r"../data\weights\2022_0303\Classifier"
+    segmentatorModelPath = r"../data\weights\2022_0303\Segmentator"
 
     serialPort = "COM3"
     baudRate = 115200
@@ -39,7 +40,7 @@ if __name__ == "__main__":
 
     #-------------------连接设备----------------#
 
-    daq, daq_device, path = createSession()
+    daq_session = DaqSession(cfg)
     print("-"*10 + "成功连接设备" + "-"*10)
 
 
@@ -64,7 +65,7 @@ if __name__ == "__main__":
     
     #------------------开启生产者和检测器线程----------------#
     q = Queue(queueLen)
-    t_producer = Thread(target=dataProduction, args=(recorder, daq, q, daq_device, path))
+    t_producer = Thread(target=dataProduction, args=(recorder, daq_session.daq, q, daq_session.path))
     t_consumer = Thread(target=dataProcess, args=(processer, q, infer_result_save_folder, ser))
 
     print("-"*10 + "模型加载完毕, 线程已开启" + "-"*10)

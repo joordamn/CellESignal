@@ -37,33 +37,41 @@ class ProcesserForTest:
         return decision
 
 
-class Processer(ProcesserForTest):
+class Processer():
     def __init__(self, classifier_weight, segmentator_weight, device, interpolate_length=256):
-        super(Processer, self).__init__(classifier_weight, segmentator_weight, device, interpolate_length)
+        self.detector = PeakDetector(classifier_weight, segmentator_weight, device, interpolate_length)
     
     def __call__(self, input: np.ndarray):
+        """detect and return
+        """
         if type(input) is not np.ndarray:
             raise TypeError("input for processer is not ndarray")
 
-        return self._process(input)
+        return self._detect(input)
 
-    def _process(self, input):
+    def _detect(self, input):
         """
         infer the input with detector
         """
 
         label, border, pred_prob = self.detector(input)
-
-        if label == 0:
-            decision = 0
-        elif label == 1:
-            decision = random.randint(1, 2)
-
-        return decision, label, border, pred_prob
+        return label, border, pred_prob
         
-        
+    def decision(self, signal_pack1: tuple, signal_pack2: tuple):
+        """_summary_
 
+        Args:
+            signal_pack1 (tuple): ([signal1], [borders1])
+            signal_pack2 (tuple): ([signal1], [borders1])
+        Returns:
+            decision (int): channel state
+        """
+        signal1, borders1 = signal_pack1
+        signal2, borders2 = signal_pack2
 
+        # TODO change the method of decision making
+        decision = random.randint(1, 2)
+        return decision
 
 
 

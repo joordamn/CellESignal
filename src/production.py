@@ -21,9 +21,10 @@ from threading import Thread
 from src.recorder import Recorder
 from src.processer import Processer
 from utils.utils import save_and_plot, post_plot
+from utils.daqSessionCreator import DaqSession
 
 
-def dataProduction(recorderIns: Recorder, daq, q_in: Queue, device, path, t_end=500):
+def dataProduction(recorderIns: Recorder, daq, q_in: Queue, path, t_end=500):
     """生产者线程函数
 
     """
@@ -71,7 +72,7 @@ def dataProcess(processer: Processer, q_out: Queue, save_folder, ser=None, plot_
         start_t = time.time()
         signal = packageGet["signal"]
         timestamp = packageGet["timestamp"]
-        decision, label, borders, pred_prob = processer(np.asarray(signal))
+        label, borders, pred_prob = processer(np.asarray(signal))
         processing_t = time.time() - start_t
         if label == 0:
             flag = "noise"
@@ -80,7 +81,7 @@ def dataProcess(processer: Processer, q_out: Queue, save_folder, ser=None, plot_
             signal_counter += 1
             save_and_plot(save_folder=save_folder, raw_signal=signal, borders=borders, pred_prob=pred_prob,timestamp=timestamp, count=signal_counter, plot_online=plot_online)
 
-            print(f"Processer made a decision of {decision}, It's {flag}")
+            print(f"signal number:{signal_counter}")
         # print("Processing takes {:.5f} seconds".format(processing_t))
 
         # 向串口写入0-2
@@ -88,7 +89,7 @@ def dataProcess(processer: Processer, q_out: Queue, save_folder, ser=None, plot_
         # 1 -> 类别1  状态1
         # 2 -> 类别2  状态2
             if ser:
-                ser.write(str(decision).encode('utf-8'))
+                ser.write(str(1).encode('utf-8'))
 
         package_counter += 1
     print(f"共接收到{package_counter}次数据包, {signal_counter}次信号")
@@ -97,44 +98,64 @@ def dataProcess(processer: Processer, q_out: Queue, save_folder, ser=None, plot_
 
 
 class DataProducer(Thread):
-    def __init__(self, dataRecorder: Recorder, daq, q_in: Queue, device, path):
+    def __init__(
+        self, 
+        dataRecorder: Recorder, 
+        daqSession1: DaqSession,
+        daqSession2: DaqSession, 
+        q_in: Queue, 
+        ):
         super(DataProducer, self).__init__()
         self.dataRecorder = dataRecorder
-        self.daq = daq
+        self.daq1 = daqSession1.daq
+        self.daq2 = daqSession2.daq
         self.q_in = q_in
-        self.path = path
+        self.path1 = daqSession1.path
+        self.path2 = daqSession2.path
         
     def run(self):
-        counter = 0
-        counter2 = 0
+        counter_all, counter1, counter2 = 0, 0, 0
         curr_time = time.time()
-        self.daq.sync()
-        self.daq.subscribe(self.path)
+        self.daq1.sync()
+        self.daq1.subscribe(self.path1)
+        self.daq2.sync()
+        self.daq2.subscribe(self.path2)
+
         time.sleep(0.05)
-        # while time.time() - curr_time < t_end: # or len(recorderIns.streamData["timestamp"]) > recorderIns._overlap:
         while True:
 
-            start_t = time.time()
-            poll = self.daq.poll(0.02, 200, 0, True)
-            sample = poll[self.path]
-            read_t = time.time() - start_t
+            # start_t = time.time()
+            # daq1 获取数据
+            poll1 = self.daq1.poll(0.02, 200, 0, True)
+            sample1 = poll1[self.path1]
+            # daq2 获取数据
+            poll2 = self.daq2.poll(0.02, 200, 0, True)
+            sample2 = poll2[self.path2]
+
+            # read_t = time.time() - start_t
             # print("read time takes {:.5f}, get data of length {}".format(read_t, len(sample["timestamp"])))
 
-            packages = self.dataRecorder(sample)
             # print("recorder容器中剩余{}长度的数据".format(len(recorderIns.streamData["timestamp"])))
-            if packages:
-                for package in packages:
+            packages1 = self.dataRecorder(sample1)
+            if packages1:
+                for package in packages1:
                     self.q_in.put(package)
-                    counter += 1
+                    counter1 += 1
 
-            counter2 += 1
+            packages2 = self.dataRecorder(sample2)
+            if packages2:
+                for package in packages2:
+                    self.q_in.put(package)
+                    counter2 += 1
+            counter_all += 1
 
             if keyboard.is_pressed("/"):      
                 # 生产结束标志位
                 self.q_in.put("finish")
-                print(f"共打包了{counter}次数据, 循环了{counter2}次")
+                print(f"daq1打包了{counter1}次数据, daq2打包了{counter2}，循环了{counter_all}次")
 
-                self.daq.unsubscribe(self.path)
+                self.daq1.unsubscribe(self.path1)
+                self.daq2.unsubscribe(self.path2)
 
 
 class DataConsumer(Thread):
@@ -144,6 +165,7 @@ class DataConsumer(Thread):
         self.q_out = q_out
         self.save_folder = save_folder
         self.plot_online = plot_online
+        self.ser = ser
 
     def run(self):
         package_counter = 0
@@ -153,22 +175,31 @@ class DataConsumer(Thread):
             if packageGet == "finish":
                 break
             start_t = time.time()
-            signal = packageGet["signal"]
-            timestamp = packageGet["timestamp"]
-            decision, label, borders, pred_prob = self.dataProcesser(np.asarray(signal))
-            processing_t = time.time() - start_t
-            if label == 0:
-                flag = "noise"
-            elif label == 1:
+            packageGet1 = packageGet
+            packageGet2 = self.q_out.get()
+
+            signal1 = packageGet1["signal"]
+            timestamp1 = packageGet1["timestamp"]
+            
+            signal2 = packageGet2["signal"]
+            timestamp2 = packageGet2["timestamp"]
+            
+            label1, borders1, pred_prob1 = self.dataProcesser(np.asarray(signal1))
+            label2, borders2, pred_prob2 = self.dataProcesser(np.asarray(signal2))
+            # processing_t = time.time() - start_t
+
+            if label1 == 1 and label2 == 1:
                 flag = "pulse"
                 signal_counter += 1
-                save_and_plot(
-                    save_folder=self.save_folder, 
-                    raw_signal=signal, borders=borders, 
-                    pred_prob=pred_prob,timestamp=timestamp, 
-                    count=signal_counter, 
-                    plot_online=self.plot_online
-                    )
+                # decision making
+                decision = self.dataProcesser.decision((signal1, borders1), (signal2, borders2))
+                # save_and_plot(
+                #     save_folder=self.save_folder, 
+                #     raw_signal=signal, borders=borders, 
+                #     pred_prob=pred_prob,timestamp=timestamp, 
+                #     count=signal_counter, 
+                #     plot_online=self.plot_online
+                #     )
 
                 print(f"Processer made a decision of {decision}, It's {flag}")
             # print("Processing takes {:.5f} seconds".format(processing_t))
