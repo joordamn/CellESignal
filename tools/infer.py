@@ -70,7 +70,7 @@ class PeakDetector:
 
         return signal.view(1, 1, -1)
 
-    def _get_borders(self, pred_prob, threshold=0.3, interpolation_factor=1, minimum_peak_points=5):
+    def _get_borders(self, pred_prob, threshold=0.5, interpolation_factor=1, minimum_peak_points=10):
         """ post process for the predicted probability and find the peaks
         """
         pred_mask = pred_prob > threshold  # threshold cut the prediction
@@ -168,13 +168,14 @@ def infer_from_txt_file(model: PeakDetector, file_path, save_path):
 if __name__ == "__main__":
 
     # parameters
-    DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    classifierModelPath = "../data/weights/2022_0302/Classifier"
-    segmentatorModelPath = "../data/weights/2022_0302/Segmentator"
+    # DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    DEVICE = "cpu"
+    classifierModelPath = "../data/weights/2022_0303/Classifier"
+    segmentatorModelPath = "../data/weights/2022_0303/Segmentator"
 
-    dataRoot = "../data/raw_txt_data/MutiChannel_MDA_ANTIBODY_COATING_2022_02_27/"
+    dataRoot = r"../data\raw_txt_data\MultiChannel_MDA_DEAD_20220305"
     # 文件名
-    fileName = "1_05psi_noGravity_meas_plotter_20220227_185626.txt"
+    fileName = "ALL_2psi.txt"
     filePath = os.path.join(dataRoot, fileName)
     savePath = os.path.join(dataRoot, os.path.splitext(fileName)[0])
     

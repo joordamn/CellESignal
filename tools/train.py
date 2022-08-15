@@ -31,11 +31,11 @@ from utils.utils import create_logger, check_data_dir, plot_line
 
 
 parser = argparse.ArgumentParser(description="Training")
-parser.add_argument('--type', default=None, help='train model type', type=str)
+parser.add_argument('--type', default="segment", help='train model type', type=str)
 parser.add_argument('--lr', default=None, help='learning rate', type=float)
 parser.add_argument('--max_epoch', default=None, type=int)
 parser.add_argument('--train_bs', default=0, type=int)
-parser.add_argument('--data_root_dir', default=r"../data/train_data/2022_03_01",
+parser.add_argument('--data_root_dir', default=r"../data/train_data/2022_03_03/segment/",
                     help="path to your dataset")
 args = parser.parse_args()
 
@@ -60,8 +60,8 @@ if __name__ == "__main__":
     train_set = ROIDataset(train_dir, cfg.device, interpolate=True, length=cfg.length, model_type=cfg.model_type)
     valid_set = ROIDataset(valid_dir, cfg.device, interpolate=True, length=cfg.length, model_type=cfg.model_type)
 
-    train_loader = DataLoader(train_set, batch_size=cfg.train_bs, shuffle=True, num_workers=cfg.workers)
-    valid_loader = DataLoader(valid_set, batch_size=cfg.valid_bs, num_workers=cfg.workers)
+    train_loader = DataLoader(train_set, batch_size=cfg.train_bs, shuffle=True)#, num_workers=cfg.workers)
+    valid_loader = DataLoader(valid_set, batch_size=cfg.valid_bs)#, num_workers=cfg.workers)
 
     # ----------------step 2/4: net definition and loss functin--------------------#
     if cfg.model_type == "classification":
@@ -93,9 +93,9 @@ if __name__ == "__main__":
     # ----------step 4/4: training ------------------------#
     logger.info(
         "train model type: {}\n"
-        "cfg:\n{}\n loss_f:\n{}\n scheduler:\n{}\n optimizer:\n{}\n model:\n{}"
+        "cfg:\n{}\n loss_f:\n{}\n scheduler:\n{}\n optimizer:\n{}\n"
         "device:{}"
-        .format(cfg.model_type, cfg, loss_f, scheduler, optimizer, model, cfg.device)#torch.cuda.get_device_name())
+        .format(cfg.model_type, cfg, loss_f, scheduler, optimizer, cfg.device)#torch.cuda.get_device_name())
         )
 
     loss_rec = {"train": [], "val": []}  # loss 记录
