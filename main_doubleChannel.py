@@ -17,7 +17,7 @@ from src.processer import Processer
 from src.production import DataProducer, DataConsumer
 from src.recorder import Recorder
 from utils.daqSessionCreator import DaqSession
-from utils.utils import create_folder, post_plot
+from utils.utils import create_folder
 from config import cfg
 
 
@@ -45,18 +45,34 @@ def buildThread(cfg):
     ser = connectArduino(cfg)
     daqSession1, daqSession2 = connectAmplifier(cfg)
 
-    # 初始化recorder和processor，开启生产者和检测器线程
-    recorder = Recorder(200) # 默认打包100长度的数据
+    # 初始化recorder和processor
+    recorder1 = Recorder(200) # 打包200长度的数据
+    recorder2 = Recorder(200)
     processer = Processer(
         classifier_weight=cfg.classifierModelPath,
         segmentator_weight=cfg.segmentatorModelPath,
         device=cfg.DEVICE
     )
-    q = Queue(cfg.queueLen)
+    q1 = Queue(cfg.queueLen)
+    q2 = Queue(cfg.queueLen)
     
-
-    producer = DataProducer(recorder, daqSession1, daqSession2, q)
-    consumer = DataConsumer(processer, q, infer_result_save_folder, ser)
+    # 初始化生产者和检测器线程
+    producer = DataProducer(
+        dataRecorder1=recorder1,
+        dataRecorder2=recorder2, 
+        daqSession1=daqSession1, 
+        daqSession2=daqSession2, 
+        q_in1=q1,
+        q_in2=q2,
+        )
+    consumer = DataConsumer(
+        dataProcesser=processer, 
+        q_out1=q1, 
+        q_out2=q2,
+        save_folder=infer_result_save_folder, 
+        ser=ser,
+        plot_online=True,
+        )
 
     print("-"*10 + "模型加载完毕, 线程已开启" + "-"*10)
     return producer, consumer
@@ -71,5 +87,5 @@ def run(cfg):
 
 
 if __name__ == "__main__":
-
+    
     run(cfg)

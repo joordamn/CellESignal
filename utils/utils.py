@@ -59,7 +59,15 @@ def read_from_txt(file_path):
     return data, flag
 
 
-def save_and_plot(save_folder:str, raw_signal:list, borders:list, pred_prob:list, timestamp:list, count:int, plot_online=True):
+def save_and_plot(
+    save_folder:str, 
+    raw_signal:list, 
+    borders:list, 
+    pred_prob:list, 
+    timestamp:list, 
+    count:int, 
+    plot_online=True
+    ):
     # TODO 开启新线程来处理保存和绘图 以免影响消费者线程
     now = datetime.now()
     date = now.strftime("%Y_%m_%d")
@@ -93,6 +101,64 @@ def save_and_plot(save_folder:str, raw_signal:list, borders:list, pred_prob:list
         "capture_time": capture_time,
     }
     with open(save_folder + "/{}.json".format(signal_code), mode="w", encoding="utf-8") as f:
+        json.dump(save_content, f, indent=4)
+
+
+def save_and_plot_doubleChannel(
+    save_folder:str, 
+    raw_signal1:list, 
+    raw_signal2:list, 
+    borders1:list, 
+    borders2:list, 
+    # pred_prob:list, 
+    timestamp1:list, 
+    timestamp2:list,
+    count:int, 
+    plot_online=True
+    ):
+    # TODO 开启新线程来处理保存和绘图 以免影响消费者线程
+    now = datetime.now()
+    date = now.strftime("%Y_%m_%d")
+    capture_time = now.strftime("%H_%M_%S_%f")
+    signal_number = str(count).zfill(5)
+    signal_title = "signal_" + signal_number + "_" + capture_time
+    signal_code1 = "signalChannel1_" + signal_number + "_" + capture_time
+    signal_code2 = "signalChannel2_" + signal_number + "_" + capture_time
+
+    # plot
+    if plot_online:
+        figure = plt.figure()
+        ax = figure.add_subplot(111)
+        ax.plot(raw_signal1, label=signal_code1)
+        title = "signal NO.{}, capture time:{}".format(signal_number, capture_time)
+        if borders1:
+            for border in borders1:
+                begin, end = border
+                ax.fill_between(range(begin, end + 1), y1=raw_signal1[begin:end + 1], y2=min(raw_signal1), alpha=0.5)
+        ax.plot(raw_signal2, label=signal_code2)
+        if borders2:
+            for border in borders2:
+                begin, end = border
+                ax.fill_between(range(begin, end + 1), y1=raw_signal2[begin:end + 1], y2=min(raw_signal2), alpha=0.5)
+        ax.set_title(title)
+        ax.legend(loc='best')
+        plt.savefig(save_folder + '/{}.jpg'.format(signal_title))
+        plt.close("all")
+
+    # save in json
+    save_content = {
+        "signal_number": signal_number,
+        "signal_code": signal_code1,
+        "raw_signal1": raw_signal1,
+        "timestamp1": timestamp1,
+        "borders1": borders1,
+        "raw_signal2": raw_signal2,
+        "timestamp2": timestamp2,
+        "borders2": borders2,
+        # "pred_prob": pred_prob,
+        "capture_time": capture_time,
+    }
+    with open(save_folder + "/{}.json".format(signal_title), mode="w", encoding="utf-8") as f:
         json.dump(save_content, f, indent=4)
 
 

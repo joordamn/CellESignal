@@ -20,7 +20,7 @@ from threading import Thread
 
 from src.recorder import Recorder
 from src.processer import Processer
-from utils.utils import save_and_plot, post_plot
+from utils.utils import save_and_plot, post_plot, save_and_plot_doubleChannel
 from utils.daqSessionCreator import DaqSession
 
 
@@ -100,16 +100,20 @@ def dataProcess(processer: Processer, q_out: Queue, save_folder, ser=None, plot_
 class DataProducer(Thread):
     def __init__(
         self, 
-        dataRecorder: Recorder, 
+        dataRecorder1: Recorder, 
+        dataRecorder2: Recorder, 
         daqSession1: DaqSession,
         daqSession2: DaqSession, 
-        q_in: Queue, 
+        q_in1: Queue, 
+        q_in2: Queue, 
         ):
         super(DataProducer, self).__init__()
-        self.dataRecorder = dataRecorder
+        self.dataRecorder1 = dataRecorder1
+        self.dataRecorder2 = dataRecorder2
         self.daq1 = daqSession1.daq
         self.daq2 = daqSession2.daq
-        self.q_in = q_in
+        self.q_in1 = q_in1
+        self.q_in2 = q_in2
         self.path1 = daqSession1.path
         self.path2 = daqSession2.path
         
@@ -136,22 +140,23 @@ class DataProducer(Thread):
             # print("read time takes {:.5f}, get data of length {}".format(read_t, len(sample["timestamp"])))
 
             # print("recorder容器中剩余{}长度的数据".format(len(recorderIns.streamData["timestamp"])))
-            packages1 = self.dataRecorder(sample1)
+            packages1 = self.dataRecorder1(sample1)
             if packages1:
                 for package in packages1:
-                    self.q_in.put(package)
+                    self.q_in1.put(package)
                     counter1 += 1
 
-            packages2 = self.dataRecorder(sample2)
+            packages2 = self.dataRecorder2(sample2)
             if packages2:
                 for package in packages2:
-                    self.q_in.put(package)
+                    self.q_in2.put(package)
                     counter2 += 1
             counter_all += 1
 
             if keyboard.is_pressed("/"):      
                 # 生产结束标志位
-                self.q_in.put("finish")
+                self.q_in1.put("finish")
+                self.q_in2.put("finish")
                 print(f"daq1打包了{counter1}次数据, daq2打包了{counter2}，循环了{counter_all}次")
 
                 self.daq1.unsubscribe(self.path1)
@@ -159,10 +164,19 @@ class DataProducer(Thread):
 
 
 class DataConsumer(Thread):
-    def __init__(self, dataProcesser: Processer, q_out: Queue, save_folder, ser=None, plot_online=False):
+    def __init__(
+        self, 
+        dataProcesser: Processer, 
+        q_out1: Queue, 
+        q_out2: Queue, 
+        save_folder, 
+        ser=None, 
+        plot_online=False,
+        ):
         super(DataConsumer, self).__init__()
         self.dataProcesser = dataProcesser
-        self.q_out = q_out
+        self.q_out1 = q_out1
+        self.q_out2 = q_out2
         self.save_folder = save_folder
         self.plot_online = plot_online
         self.ser = ser
@@ -171,12 +185,11 @@ class DataConsumer(Thread):
         package_counter = 0
         signal_counter = 0
         while True:
-            packageGet = self.q_out.get()
-            if packageGet == "finish":
+            packageGet1 = self.q_out1.get()
+            if packageGet1 == "finish":
                 break
             start_t = time.time()
-            packageGet1 = packageGet
-            packageGet2 = self.q_out.get()
+            packageGet2 = self.q_out2.get()
 
             signal1 = packageGet1["signal"]
             timestamp1 = packageGet1["timestamp"]
@@ -193,13 +206,14 @@ class DataConsumer(Thread):
                 signal_counter += 1
                 # decision making
                 decision = self.dataProcesser.decision((signal1, borders1), (signal2, borders2))
-                # save_and_plot(
-                #     save_folder=self.save_folder, 
-                #     raw_signal=signal, borders=borders, 
-                #     pred_prob=pred_prob,timestamp=timestamp, 
-                #     count=signal_counter, 
-                #     plot_online=self.plot_online
-                #     )
+                save_and_plot_doubleChannel(
+                    save_folder=self.save_folder, 
+                    raw_signal1=signal1, raw_signal2=signal2,
+                    borders1=borders1, borders2=borders2,
+                    timestamp1=timestamp1, timestamp2=timestamp2,
+                    count=signal_counter, 
+                    plot_online=self.plot_online,
+                    )
 
                 print(f"Processer made a decision of {decision}, It's {flag}")
             # print("Processing takes {:.5f} seconds".format(processing_t))
@@ -212,7 +226,10 @@ class DataConsumer(Thread):
                     self.ser.write(str(decision).encode('utf-8'))
 
             package_counter += 1
+        
         print(f"共接收到{package_counter}次数据包, {signal_counter}次信号")
+        if not self.plot_online:
+            post_plot(json_folder=self.save_folder)
 
 
 # ------ test -------#
