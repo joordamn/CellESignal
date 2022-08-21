@@ -59,6 +59,63 @@ def read_from_txt(file_path):
     return data, flag
 
 
+def parsePeaks(peak: list, borders: list):
+    """ 从peak中抽取pp值和travelTime的信息
+        暂时只考虑一个峰值的情况
+
+    Args:
+        peak (list): peak signal slice
+        borders (_type_): border of the peak
+    Returns:
+        
+    """
+    sliceLen = len(peak)
+    borderNum = len(borders) if borders else 0
+    
+    if borderNum == 1: # 只有一个峰值的情况
+        begin, end = borders[0][0], borders[0][1]
+        # maxVal = max(peak)
+        # minVal = min(peak)
+        # begin = peak.index(maxVal)
+        # end = peak.index(minVal)
+        maxVal = max(peak[begin:end])
+        minVal = min(peak[begin:end])
+        travelPoints = abs(begin - end)
+        travelTime = travelPoints * (1 / 1674) * 1000
+        ppVal = abs(maxVal - minVal)
+        return (travelTime, ppVal)
+        ##### 以下为方便作图
+        # if ppVal > 0.0012:
+        #     return None
+        # else:
+        #     return (travelTime, ppVal)
+
+    elif borderNum >= 2 : # 多于一个峰值的情况: 返回信号最长的那个
+        maxBorder = []
+        maxBorderLen = 0
+        for border in borders:
+            borderLen = abs(border[0] - border[1])
+            if borderLen > maxBorderLen:
+                maxBorderLen = borderLen
+                maxBorder = border
+
+        begin, end = maxBorder[0], maxBorder[1]
+        maxVal = max(peak[begin:end])
+        minVal = min(peak[begin:end])
+        travelPoints = abs(begin - end)
+        travelTime = travelPoints * (1 / 1674) * 1000
+        ppVal = abs(maxVal - minVal)
+        return (travelTime, ppVal)
+        ###### 以下为方便作图
+        # # if ppVal > 0.0012:
+        # if ppVal > 0.0003 or travelTime > 60:
+        #     return None
+        # # else:
+        # #     return (travelTime, ppVal)
+    elif not borders:
+        return None
+
+
 def save_and_plot(
     save_folder:str, 
     raw_signal:list, 
@@ -66,6 +123,7 @@ def save_and_plot(
     pred_prob:list, 
     timestamp:list, 
     count:int, 
+    flag:str,
     plot_online=True
     ):
     # TODO 开启新线程来处理保存和绘图 以免影响消费者线程
@@ -73,14 +131,14 @@ def save_and_plot(
     date = now.strftime("%Y_%m_%d")
     capture_time = now.strftime("%H_%M_%S_%f")
     signal_number = str(count).zfill(5)
-    signal_code = "signal_" + signal_number + "_" + capture_time
+    signal_code = "signal_" + signal_number + "_" + flag + "_" + capture_time
 
     # plot
     if plot_online:
         figure = plt.figure()
         ax = figure.add_subplot(111)
         ax.plot(raw_signal, label=signal_code)
-        title = "signal NO.{}, capture time:{}".format(signal_number, capture_time)
+        title = "signal NO.{}, capture time:{}, {}".format(signal_number, capture_time, flag)
         if borders:
             for border in borders:
                 begin, end = border

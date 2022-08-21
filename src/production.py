@@ -74,22 +74,30 @@ def dataProcess(processer: Processer, q_out: Queue, save_folder, ser=None, plot_
         timestamp = packageGet["timestamp"]
         label, borders, pred_prob = processer(np.asarray(signal))
         processing_t = time.time() - start_t
-        if label == 0:
-            flag = "noise"
-        elif label == 1:
-            flag = "pulse"
-            signal_counter += 1
-            save_and_plot(save_folder=save_folder, raw_signal=signal, borders=borders, pred_prob=pred_prob,timestamp=timestamp, count=signal_counter, plot_online=plot_online)
 
-            print(f"signal number:{signal_counter}")
+        if label == 1:
+            signal_counter += 1
+            decision, flag = processer.decision((signal, borders))
+            save_and_plot(
+                save_folder=save_folder, 
+                raw_signal=signal, 
+                borders=borders, 
+                pred_prob=pred_prob,
+                timestamp=timestamp, 
+                count=signal_counter, 
+                flag=flag,
+                plot_online=plot_online,
+                )
+
+            print(f"signal number:{signal_counter} || {flag}")
         # print("Processing takes {:.5f} seconds".format(processing_t))
 
-        # 向串口写入0-2
-        # 0 -> 噪声   状态0
-        # 1 -> 类别1  状态1
-        # 2 -> 类别2  状态2
-            if ser:
-                ser.write(str(1).encode('utf-8'))
+            # 向串口写入1-2
+            # 0 -> 类别0  未进入sorting gate范围
+            # 1 -> 类别1  状态1
+            # 2 -> 类别2  状态2
+            if ser and decision:
+                ser.write(str(decision).encode('utf-8'))      
 
         package_counter += 1
     print(f"共接收到{package_counter}次数据包, {signal_counter}次信号")
@@ -184,11 +192,15 @@ class DataConsumer(Thread):
     def run(self):
         package_counter = 0
         signal_counter = 0
+        start_t = time.time()
         while True:
+            
             packageGet1 = self.q_out1.get()
             if packageGet1 == "finish":
                 break
-            start_t = time.time()
+            if time.time() - start_t <= 3:
+                print(time.time())
+                continue
             packageGet2 = self.q_out2.get()
 
             signal1 = packageGet1["signal"]

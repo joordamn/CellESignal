@@ -25,8 +25,13 @@ cfg.queueLen = 0
 cfg.classifierModelPath = r"../data\weights\2022_0303\Classifier"
 cfg.segmentatorModelPath = r"../data\weights\2022_0303\Segmentator"
 
-# exp root
+# exp 实验相关参数设置
 cfg.exp_root = "./exp"
+cfg.exp_mode = "liveordead" # 实验种类 "liveordead" / "stiffness"
+cfg.sorting_gate = {
+    "ppVal": [[0.000025, 0.1],[0, 0.00002]],  # 活细胞峰值范围，死细胞峰值范围
+    "travel_time": [[0, 20],[30, 50]], # 活细胞速度范围，死细胞速度范围 ms
+}
 
 # serial port
 cfg.serialPort = "COM3"
@@ -48,9 +53,9 @@ cfg.amplitude = 50                      # 输出信号幅值
 # daq 1
 cfg.server_1_port = 8004
 cfg.device_1_id = "dev3051"
-cfg.frequency_1 = 289e3
+cfg.frequency_1 = 303e3
 # daq 2
 cfg.server_2_port = 8004
 cfg.device_2_id = "dev5234"
-cfg.frequency_2 = 303e3
+cfg.frequency_2 = 289e3
 

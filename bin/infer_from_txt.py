@@ -24,7 +24,7 @@ parent_path = os.path.abspath(os.path.join(__file__, *(['..'] * 2)))
 sys.path.insert(0, parent_path)
 
 from tools.infer import PeakDetector
-from utils.utils import read_from_txt
+from utils.utils import read_from_txt, parsePeaks
 
 
 def full_signal_infer(full_signal: list, model: PeakDetector):
@@ -57,57 +57,6 @@ def full_signal_infer(full_signal: list, model: PeakDetector):
     pbar.close()
 
     return peakCollections
-
-
-def parsePeaks(peak: list, borders: list):
-    """ 从peak中抽取pp值和travelTime的信息
-        暂时只考虑一个峰值的情况
-
-    Args:
-        peak (list): peak signal slice
-        borders (_type_): border of the peak
-    """
-    sliceLen = len(peak)
-    borderNum = len(borders) if borders else 0
-    
-    if borderNum == 1: # 只有一个峰值的情况
-        begin, end = borders[0][0], borders[0][1]
-        # maxVal = max(peak)
-        # minVal = min(peak)
-        # begin = peak.index(maxVal)
-        # end = peak.index(minVal)
-        maxVal = max(peak[begin:end])
-        minVal = min(peak[begin:end])
-        travelPoints = abs(begin - end)
-        travelTime = travelPoints * (1 / 1674) * 1000
-        ppVal = abs(maxVal - minVal)
-        if ppVal > 0.0012:
-            return None
-        else:
-            return (travelTime, ppVal)
-    elif borderNum >= 2 : # 多于一个峰值的情况: 返回信号最长的那个
-        maxBorder = []
-        maxBorderLen = 0
-        for border in borders:
-            borderLen = abs(border[0] - border[1])
-            if borderLen > maxBorderLen:
-                maxBorderLen = borderLen
-                maxBorder = border
-
-        begin, end = maxBorder[0], maxBorder[1]
-        maxVal = max(peak[begin:end])
-        minVal = min(peak[begin:end])
-        travelPoints = abs(begin - end)
-        travelTime = travelPoints * (1 / 1674) * 1000
-        ppVal = abs(maxVal - minVal)
-        # return (travelTime, ppVal)
-        # if ppVal > 0.0012:
-        if ppVal > 0.0003 or travelTime > 60:
-            return None
-        # else:
-        #     return (travelTime, ppVal)
-    elif not borders:
-        return None
 
 
 def peakJsonLoad(jsonFile):

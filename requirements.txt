@@ -6,3 +6,5 @@ tqdm
 zhinst
 scipy
 keyboard
+pyserial
+easydict
