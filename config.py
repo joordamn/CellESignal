@@ -34,7 +34,7 @@ cfg.sorting_gate = {
 }
 
 # serial port
-cfg.serialPort = "COM3"
+cfg.serialPort = "COM4"
 cfg.baudRate = 115200
 
 # ---------------------------------------------------------------#

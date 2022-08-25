@@ -20,7 +20,7 @@ from threading import Thread
 
 from src.recorder import Recorder
 from src.processer import Processer
-from utils.utils import save_and_plot, post_plot, save_and_plot_doubleChannel
+from utils.utils import parsePeaks, save_and_plot, post_plot, save_and_plot_doubleChannel
 from utils.daqSessionCreator import DaqSession
 
 
@@ -61,13 +61,14 @@ def dataProduction(recorderIns: Recorder, daq, q_in: Queue, path, t_end=500):
             daq.unsubscribe(path)
 
 
-def dataProcess(processer: Processer, q_out: Queue, save_folder, ser=None, plot_online=False):
+def dataProcess(processer: Processer, q_out: Queue, q_draw: Queue, save_folder, ser=None, plot_online=False):
     # 消费者线程函数
     package_counter = 0
     signal_counter = 0
     while True:
         packageGet = q_out.get()
         if packageGet == "finish":
+            q_draw.put("finish")
             break
         start_t = time.time()
         signal = packageGet["signal"]
@@ -77,17 +78,22 @@ def dataProcess(processer: Processer, q_out: Queue, save_folder, ser=None, plot_
 
         if label == 1:
             signal_counter += 1
-            decision, flag = processer.decision((signal, borders))
-            save_and_plot(
-                save_folder=save_folder, 
-                raw_signal=signal, 
-                borders=borders, 
-                pred_prob=pred_prob,
-                timestamp=timestamp, 
-                count=signal_counter, 
-                flag=flag,
-                plot_online=plot_online,
-                )
+            decision, flag, traveltime, ppVal = processer.decision((signal, borders))
+            # 打包到绘图队列中
+            if flag:
+                draw_package = draw_data_packaging(signal, borders, pred_prob, timestamp, flag, traveltime, ppVal, signal_counter)
+                q_draw.put(draw_package)
+
+            # save_and_plot(
+            #     save_folder=save_folder, 
+            #     raw_signal=signal, 
+            #     borders=borders, 
+            #     pred_prob=pred_prob,
+            #     timestamp=timestamp, 
+            #     count=signal_counter, 
+            #     flag=flag,
+            #     plot_online=plot_online,
+            #     )
 
             print(f"signal number:{signal_counter} || {flag}")
         # print("Processing takes {:.5f} seconds".format(processing_t))
@@ -101,9 +107,32 @@ def dataProcess(processer: Processer, q_out: Queue, save_folder, ser=None, plot_
 
         package_counter += 1
     print(f"共接收到{package_counter}次数据包, {signal_counter}次信号")
-    if not plot_online:
-        post_plot(json_folder=save_folder)
+    # if not plot_online:
+    #     post_plot(json_folder=save_folder)
 
+
+def draw_thread(ui, q_draw):
+    while True:
+        draw_package = q_draw.get()
+        if draw_package == "finish":
+            break
+        ui.canvas._update_canvas_(draw_package)
+
+
+def draw_data_packaging(signal, borders, pred_prob, timestamp, flag, traveltime, ppVal, count):
+    draw_package = {
+
+        "raw_signal": signal,
+        "timestamp": timestamp,
+        "borders": borders,
+        "pred_prob": pred_prob,
+        "flag": flag,
+        "traveltime": traveltime,
+        "ppVal": ppVal,
+        "count": count,
+
+    }
+    return draw_package 
 
 class DataProducer(Thread):
     def __init__(

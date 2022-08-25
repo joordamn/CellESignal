@@ -82,9 +82,9 @@ class Processer():
             signal2, borders2 = signal_pack2
 
         # 根据sorting gate进行决策
-        decision, flag = self.signal_parse_with_decision(signal1, borders1)
+        decision, flag, traveltime, ppVal = self.signal_parse_with_decision(signal1, borders1)
         # decision = random.randint(1, 2)
-        return decision, flag
+        return decision, flag, traveltime, ppVal
 
     def signal_parse_with_decision(self, signal_slice, borders):
         """parse the signal and make decision
@@ -99,9 +99,10 @@ class Processer():
         """
         ppVal_and_time = parsePeaks(signal_slice, borders)
         if not ppVal_and_time:
-            return None, None
+            return None, None, None, None
         travel_time, ppVal  = ppVal_and_time
-        return self.sorting_gate(travel_time, ppVal)
+        decision, flag = self.sorting_gate(travel_time, ppVal)
+        return decision, flag, travel_time, ppVal
 
     def sorting_gate(self, travel_time, ppVal):
         # liveordead 模式
@@ -120,7 +121,7 @@ class Processer():
             # 未进入gate范围
             else:
                 print(travel_time, ppVal)
-                return 0, "未进入sorting gate范围"
+                return 0, "not in sorting gate"
         # stiffness 模式
         elif self.exp_mode == "stiffness":
             pass
