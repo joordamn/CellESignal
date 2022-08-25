@@ -65,6 +65,8 @@ def dataProcess(processer: Processer, q_out: Queue, q_draw: Queue, save_folder, 
     # 消费者线程函数
     package_counter = 0
     signal_counter = 0
+    live_signal_counter = 0
+    dead_signal_counter = 0
     while True:
         packageGet = q_out.get()
         if packageGet == "finish":
@@ -94,8 +96,13 @@ def dataProcess(processer: Processer, q_out: Queue, q_draw: Queue, save_folder, 
             #     flag=flag,
             #     plot_online=plot_online,
             #     )
+            if decision == 1:
+                live_signal_counter += 1
+            elif decision == 2:
+                dead_signal_counter += 1
 
             print(f"signal number:{signal_counter} || {flag}")
+            print(f"live cells: {live_signal_counter}, dead cells: {dead_signal_counter} \n")
         # print("Processing takes {:.5f} seconds".format(processing_t))
 
             # 向串口写入1-2
@@ -106,7 +113,7 @@ def dataProcess(processer: Processer, q_out: Queue, q_draw: Queue, save_folder, 
                 ser.write(str(decision).encode('utf-8'))      
 
         package_counter += 1
-    print(f"共接收到{package_counter}次数据包, {signal_counter}次信号")
+    print(f"共接收到{package_counter}次数据包, {signal_counter}次信号, {live_signal_counter} live cells, {dead_signal_counter} dead cells")
     # if not plot_online:
     #     post_plot(json_folder=save_folder)
 

@@ -120,7 +120,6 @@ class Processer():
                 return 2, "dead cell"
             # 未进入gate范围
             else:
-                print(travel_time, ppVal)
                 return 0, "not in sorting gate"
         # stiffness 模式
         elif self.exp_mode == "stiffness":

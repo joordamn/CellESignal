@@ -29,8 +29,8 @@ cfg.segmentatorModelPath = r"../data\weights\2022_0303\Segmentator"
 cfg.exp_root = "./exp"
 cfg.exp_mode = "liveordead" # 实验种类 "liveordead" / "stiffness"
 cfg.sorting_gate = {
-    "ppVal": [[0.000025, 0.1],[0, 0.00002]],  # 活细胞峰值范围，死细胞峰值范围
-    "travel_time": [[0, 20],[30, 50]], # 活细胞速度范围，死细胞速度范围 ms
+    "ppVal": [[0.0002, 0.008],[0, 0.0002]],  # 活细胞峰值范围，死细胞峰值范围
+    "travel_time": [[40, 60],[70, 80]], # 活细胞速度范围，死细胞速度范围 ms
 }
 
 # serial port

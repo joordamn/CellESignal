@@ -80,13 +80,14 @@ def buildThread(cfg):
     qapp = QtWidgets.QApplication(sys.argv)
     ui = ApplicationWindow(
         save_folder=infer_result_save_folder,
+        cfg=cfg,
         )
 
     drawer = Thread(
         target=draw_thread,
         args=(
             ui,
-            q_draw
+            q_draw,
         )
     )
 
